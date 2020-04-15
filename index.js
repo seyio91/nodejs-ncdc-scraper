@@ -1,59 +1,76 @@
-const siteUrl = "https://covid19.ncdc.gov.ng/";
-const axios = require('axios');
-const cheerio = require('cheerio');
+const asyncRedis = require("async-redis");
+const client = asyncRedis.createClient();
+const cron = require('node-cron');
+const { subscribe } = require('./utils/event')
+const updateData = require('./utils/app')
 
-axios(siteUrl)
-    .then(page => {
-        data = getData(page.data);
-        console.log(data)
-    })
-
-let getData = html => {
-    data = [];
-    const $ = cheerio.load(html)
-
-    $('table#custom3 tr').each((i, elem)=>{
-        tableObj = {}
-        $('td', elem).each((i, innerElem) => {
-            let key = casesObject(i)
-            let value = $('p', innerElem).text();
-            value = numParse(value);
-            tableObj[key] = value
-        })
-
-        // Check if Object is empty before you push
+cron.schedule('* * * * *', () => {
+    console.log('Checking For Updates on server');
+    updateData().then(console.log('done'))
+})
 
 
-        data.push(tableObj)
-        // console.log(tableObj)
-    })
-    return data;
-}
+// main().then(console.log('done'))
+
+// Routes should get data from redis lastview
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express()
+
+app.set('view engine', 'ejs')
+app.use(bodyParser.urlencoded({extended: true}))
+
+app.use(express.static(__dirname + '/public'))
 
 
 
-const casesObject = (index) => {
-    switch (index) {
-        case 0:
-            key = 'name'
-            break;
-        case 1:
-            key = 'totalCases'
-            break;
-        case 2:
-            key = 'activeCases'
-            break;
-        case 3:
-            key = 'discharged'
-            break;
-        case 4:
-            key = 'deaths'
-            break;
+
+app.get('/', async(req, res)=>{
+    res.render('event')
+})
+
+
+
+app.get('/events', async(req, res)=>{
+    try {
+        let data = await client.get('lastview')
+        if (data){
+            // Note to set headers
+            return res.json(JSON.parse(data))
+        } else {
+            // make request to db
+            console.log('make request to DB')
+        }
+
+    } catch (error) {
+        console.log(error)
     }
-    return key
-}
+    client.quit()
+})
 
-const numParse = (string) => {
-    let num = parseInt(string)
-    return isNaN(num) ? string : num
-}
+
+app.get('/stream', subscribe )
+
+
+// default error handling
+app.use((req, res, next) => {
+    res.status(404).send({
+    status: 404,
+    error: 'Not found'
+    })
+   })
+
+// app.use(methodOverride())
+
+app.use(function (err, req, res, next) {
+    console.error(err.stack);
+    handleError(err, res);
+    // res.status(500).send('Something went wrong!!');
+});
+
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, ()=>{
+    console.log(`server is listening on port ${PORT}`)
+});
