@@ -1,16 +1,21 @@
-const asyncRedis = require("async-redis");
-const client = asyncRedis.createClient();
+const client = require('./utils/redisClient')
 const cron = require('node-cron');
 const { subscribe } = require('./utils/event')
 const updateData = require('./utils/app')
-
-cron.schedule('* * * * *', () => {
-    console.log('Checking For Updates on server');
-    updateData().then(console.log('done'))
-})
+const cors = require('cors')
+const { init } = require('./utils/init')
 
 
-// main().then(console.log('done'))
+// Initialize App
+init()
+    .then(
+        cron.schedule('* * * * *', () => {
+            console.log('Checking For Updates on server');
+            updateData()
+                .then(console.log('done'))
+        })
+);
+
 
 // Routes should get data from redis lastview
 const express = require('express');
@@ -21,6 +26,7 @@ const app = express()
 app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({extended: true}))
 
+app.use(cors())
 app.use(express.static(__dirname + '/public'))
 
 
@@ -46,7 +52,6 @@ app.get('/events', async(req, res)=>{
     } catch (error) {
         console.log(error)
     }
-    client.quit()
 })
 
 

@@ -1,7 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const siteUrl = "https://covid19.ncdc.gov.ng/";
 
 async function scraper(){
     let result = await axios("https://covid19.ncdc.gov.ng/");

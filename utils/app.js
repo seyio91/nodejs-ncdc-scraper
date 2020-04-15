@@ -1,6 +1,7 @@
-const asyncRedis = require("async-redis");
+// const asyncRedis = require("async-redis");
+// const client = asyncRedis.createClient();
+const client = require('./redisClient')
 const scraper = require('./scraper')
-const client = asyncRedis.createClient();
 const moment = require('moment')
 const { publish } = require('./event')
 
@@ -11,26 +12,43 @@ const getObject = (key, list) => {
             return list[i]
         }
     }
+    return {}
 }
-
-// const percentageCalc = (a, b) => {
-//     let diff = b - a;
-//     return diff/a * 100
-// }
 
 const getRedisObj = async (object) => {
     result = await client.get(object);
     return JSON.parse(result)
 }
 
+function defaultObj(name){
+    initalObj = {
+        name,
+        totalCases: 0,
+        activeCases: 0,
+        discharged: 0,
+        deaths: 0,
+        changeTotal: 0,
+        changeActive: 1,
+        changeDischarged: 1,
+        changeDeaths: 1
+      }
+    return initalObj;
+}
 
+function isEmpty(obj) {
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key))
+            return false;
+    }
+    return true;
+}
 
 async function main(){
 
     let newView = [];
 
     let states = await getRedisObj('states');
-    let baseline = await getRedisObj('baseline')
+    // for production
     let current = await scraper()
     // remove after test
     // let current = await getRedisObj('current')
@@ -41,39 +59,55 @@ async function main(){
 
     // let lastRun = "2020-04-02T08:12:03+08:00"
     let lastRun = await client.get('lasttimestamp')
+    if (!lastRun){
+        lastRun = moment().format();
+    }
     lastRun = moment(lastRun)
     const currentTime = moment()
     let diffTime = currentTime.diff(lastRun, 'day')
-    // if currentmoment days from is greater than lastrun
-    // lastview becomes baseline;
-    // lastrun becomes currentMoment
 
     if (diffTime > 0){
-        baseline = lastView;
+        // baseline = lastView;
         await client.set('baseline', JSON.stringify(lastView))
-        // Update Last Run to CurrentTime. Also save Someplace
+        // Update Last Run to CurrentTime. 
+        // Save to redis
         lastRun = currentTime.format();
         await client.set('lasttimestamp', lastRun)
-        // updateDB also
     }
 
 
-    for (const data of states){        
+    for (let data of states){        
         // returned from database // using redis for now
-        const baselineData = getObject(data, baseline)
+        let baselineData = await getRedisObj(`${data}-baseline`)
         
         // This can be returned from redis using key
-        const currentData = getObject(data, current)
+        let currentData = getObject(data, current)
 
-        //get lastView
-        const lastData = getObject(data, lastView)
+        //get lastView for state
+        let lastData = await getRedisObj(`${data}-lastview`)
 
-        //check if there is a difference for each state. 
+
+        // Do error checking here to deal if values are empty or in the case removed from NCDC Site. Equate All values to zero
+        if (isEmpty(baselineData)){
+            baselineData = defaultObj(data);
+            await client.set(`${data}-baseline`, JSON.stringify(baselineData))
+        }
         
+        if (isEmpty(currentData)) {
+            currentData = defaultObj(data);
+        }
+        
+        if (isEmpty(lastData)){
+            lastData = defaultObj(data);
+            await client.set(`${data}-lastview`, JSON.stringify(lastData))
+        }
+
+        //check if there is a difference for each state.
         let changeTotal = currentData['totalCases'] - lastData['totalCases']
         let changeActive = currentData['activeCases'] - lastData['activeCases']
         let changeDischarged = currentData['discharged'] - lastData['discharged']
         let changeDeaths = currentData['deaths'] - lastData['deaths']
+
 
         if (changeTotal > 0 ||
             changeActive > 0 ||
@@ -88,44 +122,32 @@ async function main(){
                 currentData['changeDeaths'] = currentData['deaths'] - baselineData['deaths']
 
             } else {
-                    // default the change to last update
+                // default the change to last update
                 currentData['changeTotal'] = lastData['changeTotal']
                 currentData['changeActive'] = lastData['changeActive']
                 currentData['changeDischarged'] = lastData['changeDischarged']
                 currentData['changeDeaths'] = lastData['changeDeaths']
             }
-
-        // console.log(currentData)
         
         // push to list for newView
         newView.push(currentData)
 
-        // forline here
+        // reset each lastview
+        await client.set(`${data}-lastview`, JSON.stringify(currentData))
     }
-
-    console.log(dataChanges)
 
     // do some action here
     if (dataChanges){
-        console.log('change occured')
+        console.log('change occured, Sending Publish Event')
         publish(newView)
-        // do  the action is the data changed.
-        //Push data to screen
-
-        //update last view to new data (redis)
         await client.set("lastview", JSON.stringify(newView));
-
-        // NB new routes get Updates from redis
+        // change data back to false
+        dataChanges = false;
 
     }
-    // change data back to false
-    dataChanges = false;
+
     return newView
     
 }
 
-// main().then(data => {
-//     console.log(data);
-    
-// })
 module.exports = main
