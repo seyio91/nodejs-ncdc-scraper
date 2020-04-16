@@ -57,6 +57,9 @@ async function main(){
     // To check if there are any changes
     let dataChanges = false;
 
+    // Check New Date
+    let newDay = false;
+
     // let lastRun = "2020-04-02T08:12:03+08:00"
     let lastRun = await client.get('lasttimestamp')
     if (!lastRun){
@@ -69,8 +72,13 @@ async function main(){
     if (diffTime > 0){
         // baseline = lastView;
         await client.set('baseline', JSON.stringify(lastView))
-        // Update Last Run to CurrentTime. 
+        
+
+        //update baseline for each State
+        //set date update to true, to avoid another for loop
+        newDate = true;
         // Save to redis
+        // Update Last Run to CurrentTime.
         lastRun = currentTime.format();
         await client.set('lasttimestamp', lastRun)
     }
@@ -78,13 +86,23 @@ async function main(){
 
     for (let data of states){        
         // returned from database // using redis for now
-        let baselineData = await getRedisObj(`${data}-baseline`)
-        
-        // This can be returned from redis using key
-        let currentData = getObject(data, current)
-
-        //get lastView for state
+        //get last data for each state
         let lastData = await getRedisObj(`${data}-lastview`)
+
+        let baselineData;
+
+        //if its a new day, set previous data to the new baseline
+        if (newDay){
+
+            baselineData = lastData;
+
+        } else {
+            baselineData = await getRedisObj(`${data}-baseline`)
+        }
+        
+        
+        // Get State Data from scraped content
+        let currentData = getObject(data, current)
 
 
         // Do error checking here to deal if values are empty or in the case removed from NCDC Site. Equate All values to zero
@@ -135,6 +153,8 @@ async function main(){
         // reset each lastview
         await client.set(`${data}-lastview`, JSON.stringify(currentData))
     }
+
+    newDay = false
 
     // do some action here
     if (dataChanges){

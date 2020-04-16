@@ -9,7 +9,7 @@ const { init } = require('./utils/init')
 // Initialize App
 init()
     .then(
-        cron.schedule('* * * * *', () => {
+        cron.schedule('*/10 * * * *', () => {
             console.log('Checking For Updates on server');
             updateData()
                 .then(console.log('done'))
@@ -42,12 +42,29 @@ app.get('/events', async(req, res)=>{
     try {
         let data = await client.get('lastview')
         if (data){
+            console.log("return redis object")
             // Note to set headers
             return res.json(JSON.parse(data))
         } else {
             // make request to db
             console.log('make request to DB')
         }
+
+    } catch (error) {
+        console.log(error)
+    }
+})
+
+app.get('/summary', async(req, res) => {
+    try {
+        let data = {
+            totalActive: 19,
+            totalDischarged: 20,
+            totalDeath: 21,
+            totalCases: 52,
+            updateTime: "26-07-2012"
+        }
+        res.json(data)
 
     } catch (error) {
         console.log(error)
