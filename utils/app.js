@@ -1,5 +1,3 @@
-// const asyncRedis = require("async-redis");
-// const client = asyncRedis.createClient();
 const client = require('./redisClient')
 const scraper = require('./scraper')
 const moment = require('moment')
@@ -28,9 +26,9 @@ function defaultObj(name){
         discharged: 0,
         deaths: 0,
         changeTotal: 0,
-        changeActive: 1,
-        changeDischarged: 1,
-        changeDeaths: 1
+        changeActive: 0,
+        changeDischarged: 0,
+        changeDeaths: 0
       }
     return initalObj;
 }
@@ -53,6 +51,16 @@ async function main(){
     // remove after test
     // let current = await getRedisObj('current')
     let lastView = await getRedisObj('lastview')
+    let summaryTotal =  {
+        totalActive: 0,
+        totalDischarged: 0,
+        totalDeath: 0,
+        totalCases: 0,
+        changeTotal: 0,
+        changeActive: 0,
+        changeDischarged: 0,
+        changeDeaths: 0
+    }
 
     // To check if there are any changes
     let dataChanges = false;
@@ -76,7 +84,7 @@ async function main(){
 
         //update baseline for each State
         //set date update to true, to avoid another for loop
-        newDate = true;
+        newDay = true;
         // Save to redis
         // Update Last Run to CurrentTime.
         lastRun = currentTime.format();
@@ -139,14 +147,26 @@ async function main(){
                 currentData['changeDischarged'] = currentData['discharged'] - baselineData['discharged']
                 currentData['changeDeaths'] = currentData['deaths'] - baselineData['deaths']
 
-            } else {
+        } else {
                 // default the change to last update
                 currentData['changeTotal'] = lastData['changeTotal']
                 currentData['changeActive'] = lastData['changeActive']
                 currentData['changeDischarged'] = lastData['changeDischarged']
                 currentData['changeDeaths'] = lastData['changeDeaths']
-            }
-        
+        }
+        // console.log(`current Changed Active in ${data}`,currentData['changeActive'])
+        // console.log(`summary total deaths`,summaryTotal['changeActive'])
+
+        // Calculate Summary
+        summaryTotal['totalCases'] += currentData['totalCases']
+        summaryTotal['totalActive'] += currentData['activeCases']
+        summaryTotal['totalDischarged'] += currentData['discharged']
+        summaryTotal['totalDeath'] += currentData['deaths']
+        summaryTotal['changeTotal'] += currentData['changeTotal']
+        summaryTotal['changeActive'] += currentData['changeActive']
+        summaryTotal['changeDischarged'] += currentData['changeDischarged']
+        summaryTotal['changeDeaths'] += currentData['changeDeaths']
+
         // push to list for newView
         newView.push(currentData)
 
@@ -159,10 +179,25 @@ async function main(){
     // do some action here
     if (dataChanges){
         console.log('change occured, Sending Publish Event')
-        publish(newView)
+
+        // add timestamp to summary
+        summaryTotal['updateTime'] = currentTime.format();
+
+        // Create new object to be returned.
+        let publishdata = { summary: summaryTotal, data: newView }
+
+        // Publish Event
+        publish(publishdata)
+
+        // Save Published Events
         await client.set("lastview", JSON.stringify(newView));
+
+        await client.set("lastSummary", JSON.stringify(summaryTotal))
         // change data back to false
         dataChanges = false;
+
+        // debugging
+        console.log('This is the new summary', summaryTotal)
 
     }
 

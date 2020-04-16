@@ -17,7 +17,7 @@ const data = [];
 
         const tdTags = $(element).find("td");
         let name = $(tdTags[0]).text().trim()
-        if(name !== ''){
+        if(name !== '' && name !== 'Total'){
             data.push({
                 name,
                 'totalCases':numParse($(tdTags[1]).text().trim()),

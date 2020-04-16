@@ -10,7 +10,7 @@ let states = [
     'Akwa Ibom', 'Katsina', 'Kwara',
     'Kano',      'Delta',   'Ondo',
     'Enugu',     'Ekiti',   'Rivers',
-    'Benue',     'Niger',   'Anambra', 'Total'
+    'Benue',     'Niger',   'Anambra'
   ]
 
 async function init(){

@@ -9,7 +9,7 @@ const { init } = require('./utils/init')
 // Initialize App
 init()
     .then(
-        cron.schedule('*/10 * * * *', () => {
+        cron.schedule('* * * * *', () => {
             console.log('Checking For Updates on server');
             updateData()
                 .then(console.log('done'))
@@ -57,15 +57,15 @@ app.get('/events', async(req, res)=>{
 
 app.get('/summary', async(req, res) => {
     try {
-        let data = {
-            totalActive: 19,
-            totalDischarged: 20,
-            totalDeath: 21,
-            totalCases: 52,
-            updateTime: "26-07-2012"
+        let data = await client.get('lastSummary')
+        if (data){
+            console.log("return Summary")
+            // Note to set headers
+            return res.json(JSON.parse(data))
+        } else {
+            // make request to db
+            console.log('make request to DB')
         }
-        res.json(data)
-
     } catch (error) {
         console.log(error)
     }
