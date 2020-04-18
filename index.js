@@ -9,7 +9,7 @@ const { init } = require('./utils/init')
 // Initialize App
 init()
     .then(
-        cron.schedule('* * * * *', () => {
+        cron.schedule('0 * * * *', () => {
             console.log('Checking For Updates on server');
             updateData()
                 .then(console.log('done'))

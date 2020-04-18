@@ -47,20 +47,12 @@ async function main(){
 
     let states = await getRedisObj('states');
     // for production
-    let current = await scraper()
+    let scraperData = await scraper()
+    let current = scraperData.data
+    let summaryTotal = scraperData.summary
     // remove after test
     // let current = await getRedisObj('current')
     let lastView = await getRedisObj('lastview')
-    let summaryTotal =  {
-        totalActive: 0,
-        totalDischarged: 0,
-        totalDeath: 0,
-        totalCases: 0,
-        changeTotal: 0,
-        changeActive: 0,
-        changeDischarged: 0,
-        changeDeaths: 0
-    }
 
     // To check if there are any changes
     let dataChanges = false;
@@ -154,14 +146,12 @@ async function main(){
                 currentData['changeDischarged'] = lastData['changeDischarged']
                 currentData['changeDeaths'] = lastData['changeDeaths']
         }
-        // console.log(`current Changed Active in ${data}`,currentData['changeActive'])
-        // console.log(`summary total deaths`,summaryTotal['changeActive'])
 
-        // Calculate Summary
-        summaryTotal['totalCases'] += currentData['totalCases']
-        summaryTotal['totalActive'] += currentData['activeCases']
-        summaryTotal['totalDischarged'] += currentData['discharged']
-        summaryTotal['totalDeath'] += currentData['deaths']
+        // Calculate Summary. first half can be scraped off ncdc site
+        // summaryTotal['totalCases'] += currentData['totalCases']
+        // summaryTotal['totalActive'] += currentData['activeCases']
+        // summaryTotal['totalDischarged'] += currentData['discharged']
+        // summaryTotal['totalDeath'] += currentData['deaths']
         summaryTotal['changeTotal'] += currentData['changeTotal']
         summaryTotal['changeActive'] += currentData['changeActive']
         summaryTotal['changeDischarged'] += currentData['changeDischarged']
@@ -179,9 +169,6 @@ async function main(){
     // do some action here
     if (dataChanges){
         console.log('change occured, Sending Publish Event')
-
-        // add timestamp to summary
-        summaryTotal['updateTime'] = currentTime.format();
 
         // Create new object to be returned.
         let publishdata = { summary: summaryTotal, data: newView }
@@ -201,7 +188,7 @@ async function main(){
 
     }
 
-    return newView
+    return { summary: summaryTotal, data: newView }
     
 }
 

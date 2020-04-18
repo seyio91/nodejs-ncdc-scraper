@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const moment = require('moment')
 
 
 async function scraper(){
@@ -9,9 +10,41 @@ async function scraper(){
 }
 
 const getData = html => {
-const data = [];
+
+
+    const data = [];
+    const summary = {
+        totalActive: 0,
+        totalDischarged: 0,
+        totalDeath: 0,
+        totalCases: 0,
+        changeTotal: 0,
+        changeActive: 0,
+        changeDischarged: 0,
+        changeDeaths: 0,
+        updateTime: moment().format()
+    };
+
 
     const $ = cheerio.load(html);
+
+    $("table#custom1 > tbody > tr").each((index, elem)=>{
+        const tdTags = $(elem).find("td");
+        let value = numParse($(tdTags[1]).text().trim());
+        if (index == 0){
+            summary['testSum'] = $(tdTags[1]).text().trim();
+        } else if (index == 1){
+            summary['totalCases'] = value;
+            summary['totalActive'] += value;
+        } else if (index == 2){
+            summary['totalDischarged'] = value;
+            summary['totalActive'] -= value;
+        } else if (index == 3){
+            summary['totalDeath'] = value;
+            summary['totalActive'] -= value;
+        }
+    })
+
 
     $("table#custom3 > tbody > tr").each((index, element) => {
 
@@ -32,7 +65,10 @@ const data = [];
         }
 
     });
-    return data
+
+
+    // data to return
+    return { summary, data }
 }
 
 
@@ -41,5 +77,6 @@ const numParse = (string) => {
     return isNaN(num) ? string : num
 }
 
+// scraper().then(console.log('done'))
 
 module.exports = scraper;
