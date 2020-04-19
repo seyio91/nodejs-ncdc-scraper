@@ -22,7 +22,7 @@ function subscribe(req, res){
     const onEvent = function(data){
         res.write('retry: 500\n')
         res.write(`event: event\n`)
-        res.write(`data: ${JSON.stringify(data)}\n\n`)
+        res.write(`data: ${data}\n\n`)
         console.log('Subscribe Triggered')
     }
 

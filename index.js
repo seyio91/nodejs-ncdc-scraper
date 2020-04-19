@@ -1,24 +1,14 @@
 const client = require('./utils/redisClient')
-const cron = require('node-cron');
 const { subscribe } = require('./utils/event')
-const updateData = require('./utils/app')
 const cors = require('cors')
-const { init } = require('./utils/init')
+const redisSubscriber = require('./utils/redis-sub-pub')
+const express = require('express');
 
 
-// Initialize App
-init()
-    .then(
-        cron.schedule('0 * * * *', () => {
-            console.log('Checking For Updates on server');
-            updateData()
-                .then(console.log('done'))
-        })
-);
-
+redisSubscriber().then(console.log('Subscribed to Redis Client'))
 
 // Routes should get data from redis lastview
-const express = require('express');
+
 const bodyParser = require('body-parser');
 
 const app = express()
