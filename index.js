@@ -7,7 +7,6 @@ const express = require('express');
 
 redisSubscriber().then(console.log('Subscribed to Redis Client'))
 
-// Routes should get data from redis lastview
 
 const bodyParser = require('body-parser');
 
