@@ -1,8 +1,10 @@
 const client = require('./utils/redisClient')
 const { subscribe } = require('./utils/event')
 const cors = require('cors')
+const handleError = require('./utils/errors')
 const redisSubscriber = require('./utils/redis-sub-pub')
 const express = require('express');
+const { dailyEvent ,getTimeLine, getSummary } = require('./controllers/dbGet')
 
 
 redisSubscriber().then(console.log('Subscribed to Redis Client'))
@@ -19,47 +21,15 @@ app.use(cors())
 app.use(express.static(__dirname + '/public'))
 
 
-
-
 app.get('/', async(req, res)=>{
     res.render('event')
 })
 
+app.get('/timeline', getTimeLine)
 
+app.get('/events', dailyEvent)
 
-app.get('/events', async(req, res)=>{
-    try {
-        let data = await client.get('lastview')
-        if (data){
-            console.log("return redis object")
-            // Note to set headers
-            return res.json(JSON.parse(data))
-        } else {
-            // make request to db
-            console.log('make request to DB')
-        }
-
-    } catch (error) {
-        console.log(error)
-    }
-})
-
-app.get('/summary', async(req, res) => {
-    try {
-        let data = await client.get('lastSummary')
-        if (data){
-            console.log("return Summary")
-            // Note to set headers
-            return res.json(JSON.parse(data))
-        } else {
-            // make request to db
-            console.log('make request to DB')
-        }
-    } catch (error) {
-        console.log(error)
-    }
-})
-
+app.get('/summary', getSummary)
 
 app.get('/stream', subscribe )
 
