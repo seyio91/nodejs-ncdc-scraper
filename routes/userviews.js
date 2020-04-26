@@ -1,0 +1,22 @@
+const express = require('express');
+
+const { subscribe } = require('../utils/event');
+
+const { dailyEvent ,getTimeLine, getSummary, getEventDay } = require('../controllers/dbGet');
+
+const router = express.Router();
+
+
+router.get('/timeline', getTimeLine)
+
+router.get('/events', dailyEvent)
+
+router.get('/summary', getSummary)
+
+router.get('/stream', subscribe )
+
+router.get('/events/:date', getEventDay)
+
+
+
+module.exports = router;
