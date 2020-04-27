@@ -25,27 +25,53 @@ const getTimeLine = async (req, res) => {
     }
 }
 
-const dailyEvent = async(req, res) => {
+
+const dailyEvent = async( req, res ) => {
     try {
-        let data = await client.get('lastview')
-        if (!data){
+        let overview = await client.get('overview');
+        if (!overview){
             hours = await dbQuery(`SELECT date FROM ticks ORDER BY date DESC LIMIT 1`);
             lastTime = moment(hours.rows[0].date).format('YYYY-MM-DD');
-            let lastQuery = `SELECT * FROM ticks WHERE date = '${lastTime}' ORDER BY date;`
-            const { rows } = await dbQuery(lastQuery);
-            data = rows;
-            await client.set('lastview', JSON.stringify(rows))
+            let lastEvent = `SELECT * FROM ticks WHERE date = '${lastTime}' ORDER BY date;`
+            let lastQuery = `SELECT * FROM summary WHERE date = '${lastTime}' LIMIT 1;`
+            let [ event, sum ] = await Promise.all([dbQuery(lastEvent), dbQuery(lastQuery)])
+            let data = event.rows;
+            let summary = sum.rows[0]
+            overview = { summary, data }
+            await client.set('overview', JSON.stringify(overview));
         } else {
-            data = JSON.parse(data)
+            overview = JSON.parse(overview);
         }
-        successMsg.data = data
-        return res.status(status.success).json(successMsg)
-        
+        successMsg.data = overview
+        return res.status(status.success).json(successMsg);
+
     } catch (error) {
         errorMsg.error = error
         res.status(status.error).json(errorMsg)
     }
 }
+
+// const dailyEvent = async(req, res) => {
+//     try {
+//         let data = await client.get('lastview')
+//         if (!data){
+//             hours = await dbQuery(`SELECT date FROM ticks ORDER BY date DESC LIMIT 1`);
+//             lastTime = moment(hours.rows[0].date).format('YYYY-MM-DD');
+//             let lastQuery = `SELECT * FROM ticks WHERE date = '${lastTime}' ORDER BY date;`
+//             const { rows } = await dbQuery(lastQuery);
+//             data = rows;
+//             await client.set('lastview', JSON.stringify(rows))
+//         } else {
+//             data = JSON.parse(data)
+//         }
+//         successMsg.data = data
+//         return res.status(status.success).json(successMsg)
+        
+//     } catch (error) {
+//         errorMsg.error = error
+//         res.status(status.error).json(errorMsg)
+//     }
+// }
 
 
 // summary
@@ -73,25 +99,57 @@ const getSummary = async(req, res) => {
 }
 
 //get event by day
-const getEventDay = async(req, res) => {
+// const getEventDay = async(req, res) => {
+//     try {
+//         day = req.params.date;
+//         if (!verifiedDay(day)){
+
+//             return res.redirect('/events');
+//         }
+
+//         let data = await client.get(`event-${day}`);
+//         if (!data){
+//             let dayQuery = `SELECT * FROM ticks WHERE date = '${day}';`
+//             const { rows } = await dbQuery(dayQuery);
+//             data = rows;
+//             await client.setex(`event-${day}`, 43200 , JSON.stringify(rows))
+//         } else {
+//             data = JSON.parse(data)
+//         }
+//         successMsg.data = data
+//         return res.status(status.success).json(successMsg)
+
+//     } catch (error) {
+//         errorMsg.error = error
+//         res.status(status.error).json(errorMsg)
+//     }
+// }
+
+
+const getEventDay = async( req, res ) => {
     try {
+
         day = req.params.date;
         if (!verifiedDay(day)){
 
             return res.redirect('/events');
         }
 
-        let data = await client.get(`event-${day}`);
-        if (!data){
-            let dayQuery = `SELECT * FROM ticks WHERE date = '${day}';`
-            const { rows } = await dbQuery(dayQuery);
-            data = rows;
-            await client.setex(`event-${day}`, 43200 , JSON.stringify(rows))
+        let overview = await client.get(`overview-${day}`);
+
+        if (!overview){
+            let lastEvent = `SELECT * FROM ticks WHERE date = '${day}';`
+            let lastQuery = `SELECT * FROM summary WHERE date = '${day}' LIMIT 1;`
+            let [ event, sum ] = await Promise.all([dbQuery(lastEvent), dbQuery(lastQuery)])
+            let data = event.rows;
+            let summary = sum.rows[0]
+            overview = { summary, data }
+            await client.set(`overview-${day}`, JSON.stringify(overview));
         } else {
-            data = JSON.parse(data)
+            overview = JSON.parse(overview);
         }
-        successMsg.data = data
-        return res.status(status.success).json(successMsg)
+        successMsg.data = overview
+        return res.status(status.success).json(successMsg);
 
     } catch (error) {
         errorMsg.error = error

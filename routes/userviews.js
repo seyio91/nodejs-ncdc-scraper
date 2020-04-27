@@ -19,4 +19,5 @@ router.get('/events/:date', getEventDay)
 
 
 
+
 module.exports = router;
