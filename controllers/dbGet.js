@@ -25,6 +25,11 @@ const getTimeLine = async (req, res) => {
     }
 }
 
+const healthCheck = async(req, res) => {
+    successMsg.data = { status: "ok" }
+    return res.status(status.success).json(successMsg);
+}
+
 
 const dailyEvent = async( req, res ) => {
     try {
@@ -176,4 +181,4 @@ const dateParse = (arrayObj) => {
 
 }
 
-module.exports = { dailyEvent ,getTimeLine, getSummary, getEventDay };
+module.exports = { dailyEvent ,getTimeLine, getSummary, getEventDay, healthCheck };
