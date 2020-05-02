@@ -43,7 +43,7 @@ const dailyEvent = async( req, res ) => {
             let data = event.rows;
             let summary = sum.rows[0]
             overview = { summary, data }
-            await client.set('overview', JSON.stringify(overview));
+            await client.setex('overview', 34800, JSON.stringify(overview));
         } else {
             overview = JSON.parse(overview);
         }
@@ -82,14 +82,14 @@ const dailyEvent = async( req, res ) => {
 // summary
 const getSummary = async(req, res) => {
     try {
-        let data = await client.get('lastSummary')
+        let data = await client.get('currentSummary')
         if (!data){
             hours = await dbQuery(`SELECT date FROM summary ORDER BY date DESC LIMIT 1`);
             lastTime = moment(hours.rows[0].date).format('YYYY-MM-DD');
             let lastQuery = `SELECT * FROM summary WHERE date = '${lastTime}' ORDER BY date;`
             const { rows } = await dbQuery(lastQuery);
             data = rows[0]
-            await client.set('lastSummary', JSON.stringify(data))
+            await client.set('currentSummary', JSON.stringify(data))
         } else {
             data = JSON.parse(data)
         }
@@ -103,32 +103,6 @@ const getSummary = async(req, res) => {
     }
 }
 
-//get event by day
-// const getEventDay = async(req, res) => {
-//     try {
-//         day = req.params.date;
-//         if (!verifiedDay(day)){
-
-//             return res.redirect('/events');
-//         }
-
-//         let data = await client.get(`event-${day}`);
-//         if (!data){
-//             let dayQuery = `SELECT * FROM ticks WHERE date = '${day}';`
-//             const { rows } = await dbQuery(dayQuery);
-//             data = rows;
-//             await client.setex(`event-${day}`, 43200 , JSON.stringify(rows))
-//         } else {
-//             data = JSON.parse(data)
-//         }
-//         successMsg.data = data
-//         return res.status(status.success).json(successMsg)
-
-//     } catch (error) {
-//         errorMsg.error = error
-//         res.status(status.error).json(errorMsg)
-//     }
-// }
 
 
 const getEventDay = async( req, res ) => {
@@ -137,7 +111,7 @@ const getEventDay = async( req, res ) => {
         day = req.params.date;
         if (!verifiedDay(day)){
 
-            return res.redirect('/events');
+            return res.redirect('/api/user/v1/events');
         }
 
         let overview = await client.get(`overview-${day}`);
@@ -149,7 +123,7 @@ const getEventDay = async( req, res ) => {
             let data = event.rows;
             let summary = sum.rows[0]
             overview = { summary, data }
-            await client.set(`overview-${day}`, JSON.stringify(overview));
+            await client.setex(`overview-${day}`, 34800, JSON.stringify(overview));
         } else {
             overview = JSON.parse(overview);
         }
