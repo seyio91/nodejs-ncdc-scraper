@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(cors())
 app.use(express.static(__dirname + '/public'))
 
-app.use('/api/user/v1', userviews)
+app.use('/api', userviews)
 
 
 // default error handling
