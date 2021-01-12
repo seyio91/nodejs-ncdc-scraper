@@ -14,7 +14,6 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN rm Dockerfile
 
 EXPOSE 3000
 
