@@ -1,6 +1,7 @@
 const asyncRedis = require("async-redis");
-const { REDIS_HOST, REDIS_PORT } = require('./keys')
-const client = asyncRedis.createClient({ host: REDIS_HOST, port: REDIS_PORT });
+const { prod, dev, env } = require('./keys')
+let redisConfig = env == 'PROD'? prod : dev;
+const client = asyncRedis.createClient(redisConfig);
 
 const { publish } = require('./event')
 
